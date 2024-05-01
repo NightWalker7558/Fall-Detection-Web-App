@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div>
+        <h1>Fall Detection</h1>
+        {% block content %}{% endblock %}
+
+        <div id="dropbox" style="width: 200px; height: 200px; border: 1px solid black;"></div>
+
+        <div id="preview"></div>
+
+        <button></button>
+
+        <script>
+            let dropbox;
+
+            dropbox = document.getElementById("dropbox");
+            preview = document.getElementById("preview");
+            dropbox.addEventListener("dragenter", dragenter, false);
+            dropbox.addEventListener("dragover", dragover, false);
+            dropbox.addEventListener("drop", drop, false);
+
+            function handleFiles(files) {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+
+                    if (!file.type.startsWith("image/")) {
+                        continue;
+                    }
+                    console.log("Here")
+                    const img = document.createElement("img");
+                    img.classList.add("obj");
+                    img.file = file;
+                    preview.appendChild(img); // Assuming that "preview" is the div output where the content will be displayed.
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            function dragenter(e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+
+            function dragover(e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            function drop(e) {
+                e.stopPropagation();
+                e.preventDefault();
+
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                handleFiles(files);
+            }
+
+        </script>
+    </div>
+</body>
+
+</html>
