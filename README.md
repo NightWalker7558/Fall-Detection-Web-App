@@ -4,6 +4,10 @@ This project uses pre-trained YOLOv8 models that have been fine-tuned with vario
 
 The project consists of a client and a server. Follow the instructions below to set up and run the project.
 
+## Prerequisites
+
+This project requires FFmpeg to be installed on your system. You can download FFmpeg from the official website: [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
+
 ## Client
 
 The client is a React application. To run the client, navigate to the client directory and install the necessary dependencies:

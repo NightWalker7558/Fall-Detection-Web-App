@@ -6,6 +6,8 @@ import cv2
 from ultralytics import YOLO
 from flask_cors import CORS
 import base64
+import ffmpeg
+import glob
 
 app = Flask(__name__)
 CORS(app)
@@ -51,7 +53,7 @@ def process_video():
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         # Create a VideoWriter object to write processed frames to a new video
-        output_filename = os.path.join(app.config['OUTPUT_FOLDER'], 'output.mp4')
+        output_filename = os.path.join(app.config['OUTPUT_FOLDER'], 'input.mp4')
         out = cv2.VideoWriter(output_filename, cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height))
 
         while cap.isOpened():
@@ -76,12 +78,27 @@ def process_video():
                 # If all detections have a confidence score greater than 0.6, write the frame to the video
                 if high_confidence:
                     out.write(processed_frame)
+                    if not out.isOpened():
+                        print("Failed to write frame")
 
         # Release the video capture and writer
         cap.release()
         out.release()
+        if not out.isOpened():
+            print("Failed to finalize video file")
+
+        stream = ffmpeg.input(os.path.join(app.config['OUTPUT_FOLDER'], "input.mp4"))
+        stream = ffmpeg.output(stream, os.path.join(app.config['OUTPUT_FOLDER'], "output.mp4"))
+        ffmpeg.run(stream, overwrite_output=True)
 
         print("Video Processed...")
+
+        # Delete all files in the tmp and output folders except for output.mp4
+        for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
+            for filename in glob.glob(os.path.join(folder, '*')):
+                if filename != os.path.join(app.config['OUTPUT_FOLDER'], 'output.mp4'):
+                    os.remove(filename)
+
 
         return jsonify(url="http://localhost:5000/get_video")
     except Exception as e:

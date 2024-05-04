@@ -123,7 +123,14 @@ function App() {
             file && file.type.startsWith('image/') ? (
               <img src={output} alt="output" />
             ) : (
-              <video src={output} controls type="video/mp4"/>
+              <video controls>
+                <source src={output} type="video/mp4" />
+                <source src={output} type="video/ogg" />
+                <source src={output} type="video/webm" />
+                <source src={output} type="video/mov" />
+                <source src={output} type="video/avi" />
+                Your browser does not support the video tag.
+              </video>
             )
           ) : (
             'No file to process.'
