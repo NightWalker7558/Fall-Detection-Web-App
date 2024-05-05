@@ -26,7 +26,7 @@ if not os.path.exists(app.config['OUTPUT_FOLDER']):
 def process_video():
     print("Processing video...")
     try:
-        model = YOLO('model/weights/200epochs/best.pt', task="detect", verbose=False)
+        model = YOLO('model/weights/singleclass/best.pt', task="detect", verbose=False)
         print("Model Loaded...")
 
         # Open the video file
@@ -62,7 +62,7 @@ def process_video():
                 break
 
             # Process the frame
-            results = model(frame , verbose=False)
+            results = model(frame , verbose=False , conf= 0.65)
 
             # Write each processed frame to the new video
             for result in results:
@@ -72,14 +72,12 @@ def process_video():
                 for box in result.boxes:
                     class_id = int(box.cls.item())
                     class_name = result.names[class_id]
-                    confidence = box.conf.item()
-                    if confidence <= 0.6:
-                        high_confidence = False
+                    
                 # If all detections have a confidence score greater than 0.6, write the frame to the video
-                if high_confidence:
-                    out.write(processed_frame)
-                    if not out.isOpened():
-                        print("Failed to write frame")
+               
+                out.write(processed_frame)
+                if not out.isOpened():
+                    print("Failed to write frame")
 
         # Release the video capture and writer
         cap.release()
@@ -137,23 +135,22 @@ def process_image():
                 confidence = box.conf.item()
                 print(f"Confidence: {confidence}")
                 print(f"Class Name: {class_name}")
-                if confidence <= 0.3:
-                    high_confidence = False
+                
 
-            processed_img = result.plot()
-            print("Image Plotted...")
+        processed_img = result.plot()
+        print("Image Plotted...")
 
-            blob = cv2.dnn.blobFromImage(processed_img)
-            print("Blob Created...")
+        blob = cv2.dnn.blobFromImage(processed_img)
+        print("Blob Created...")
 
-            # Convert the blob back into an image
-            img_from_blob = cv2.dnn.imagesFromBlob(blob)[0]
-            print("Image from Blob Created...")
+        # Convert the blob back into an image
+        img_from_blob = cv2.dnn.imagesFromBlob(blob)[0]
+        print("Image from Blob Created...")
 
             # Save the processed image to an output directory
-            output_file_url = os.path.join(app.config['OUTPUT_FOLDER'], 'image_from_blob.jpg')
-            cv2.imwrite(output_file_url, img_from_blob)
-            print("Image Saved...")
+        output_file_url = os.path.join(app.config['OUTPUT_FOLDER'], 'image_from_blob.jpg')
+        cv2.imwrite(output_file_url, img_from_blob)
+        print("Image Saved...")
 
         # Encode the processed image in base64
         with open(output_file_url, 'rb') as image_file:
