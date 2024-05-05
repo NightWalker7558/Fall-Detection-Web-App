@@ -36,6 +36,22 @@ function App() {
     }
   };
 
+  const handleWebcamProcessing = async () => {
+    const response = await fetch('http://localhost:5000/process_webcam', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+  
+    if (response.ok) {
+      const data = await response.json();
+      setOutput(data.url);
+    } else {
+      setOutput(null);
+    }
+  };
+
   const handleDragLeave = () => {
     setDrag(false);
     setDropText('Drag and drop files here');
@@ -106,6 +122,7 @@ function App() {
         <input type="radio" name="mediaType" value="image" checked={mediaType === 'image'} onChange={handleMediaTypeChange} /> Image
         <input type="radio" name="mediaType" value="video" checked={mediaType === 'video'} onChange={handleMediaTypeChange} /> Video
         <input type="radio" name="mediaType" value="rstp" checked={mediaType === 'rstp'} onChange={handleMediaTypeChange} /> RSTP
+        <input type="radio" name="mediaType" value="webcam" checked={mediaType === 'webcam'} onChange={handleMediaTypeChange} /> Webcam
         {mediaType === 'rstp' && (
   <input type="text" placeholder="Enter RSTP URL" value={rstpUrl} onChange={(e) => setRstpUrl(e.target.value)} />
   
@@ -113,7 +130,10 @@ function App() {
 )}
       </form>
       {mediaType === 'rstp' && (
-  <button onClick={handleRstpSubmit}>Submit RSTP URL</button>
+  <button onClick={handleRstpSubmit}>Submit RSTP URL</button>    
+)}
+      {mediaType === 'webcam' && (
+  <button onClick={handleWebcamProcessing}>Process Webcam</button>
 )}
       <div
         id="drop-area"
