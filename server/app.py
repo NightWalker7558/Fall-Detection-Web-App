@@ -26,7 +26,7 @@ if not os.path.exists(app.config['OUTPUT_FOLDER']):
 def process_video():
     print("Processing video...")
     try:
-        model = YOLO('model/weights/singleclass/best.pt', task="detect", verbose=False)
+        model = YOLO('model/weights/200epochs/best.pt', task="detect", verbose=False)
         print("Model Loaded...")
 
         # Open the video file
@@ -107,7 +107,7 @@ def process_image():
     print("Processing image...")
     try:
         # Load a model
-        model = YOLO('model/weights/50epochs/best.pt', task="detect", verbose=False)  # pretrained YOLOv8n model
+        model = YOLO('model/weights/singleclass/best.pt', task="detect", verbose=False)  # pretrained YOLOv8n model
         print("Model Loaded...")
 
         # Read the image file
@@ -201,6 +201,74 @@ def get_video():
 
     return rv
 
+@app.route('/process_rstp', methods=['POST'])
+def process_rstp():
+    rstp_url = request.form['rstpUrl'] + "/video"
+    print("Processing RstpUrl...")
+    try:
+        model = YOLO('model/weights/200epochs/best.pt', task="detect", verbose=False)
+        print("Model Loaded...")
+
+
+        cap = cv2.VideoCapture(rstp_url)
+
+        # Get the video's frame rate
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        # Get the video's width and height
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        # Create a VideoWriter object to write processed frames to a new video
+        output_filename = os.path.join(app.config['OUTPUT_FOLDER'], 'input.mp4')
+        out = cv2.VideoWriter(output_filename, cv2.VideoWriter_fourcc(*'mp4v'), fps, (frame_width, frame_height))
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Process the frame
+            results = model(frame , verbose=False , conf= 0.65)
+
+            # Write each processed frame to the new video
+            for result in results:
+                processed_frame = result.plot()
+                high_confidence = True
+                
+                for box in result.boxes:
+                    class_id = int(box.cls.item())
+                    class_name = result.names[class_id]
+                    
+                # If all detections have a confidence score greater than 0.6, write the frame to the video
+               
+                out.write(processed_frame)
+                if not out.isOpened():
+                    print("Failed to write frame")
+
+        # Release the video capture and writer
+        cap.release()
+        out.release()
+        if not out.isOpened():
+            print("Failed to finalize video file")
+
+        stream = ffmpeg.input(os.path.join(app.config['OUTPUT_FOLDER'], "input.mp4"))
+        stream = ffmpeg.output(stream, os.path.join(app.config['OUTPUT_FOLDER'], "output.mp4"))
+        ffmpeg.run(stream, overwrite_output=True)
+
+        print("Video Processed...")
+
+        # Delete all files in the tmp and output folders except for output.mp4
+        for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
+            for filename in glob.glob(os.path.join(folder, '*')):
+                if filename != os.path.join(app.config['OUTPUT_FOLDER'], 'output.mp4'):
+                    os.remove(filename)
+
+
+        return jsonify(url="http://localhost:5000/get_video")
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

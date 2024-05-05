@@ -9,11 +9,31 @@ function App() {
   const [dropText, setDropText] = useState('Drag and drop files here');
   const [mediaType, setMediaType] = useState('image');
   const fileInputRef = useRef();
+  const [rstpUrl, setRstpUrl] = useState('');
 
   const handleDragOver = (e) => {
     e.preventDefault();
     setDrag(true);
     setDropText('Drop files');
+  };
+
+  const handleRstpSubmit = async () => {
+    const formData = new FormData();
+    formData.append('rstpUrl', rstpUrl);
+    const response = await fetch('http://localhost:5000/process_rstp', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+      body: formData
+    });
+  
+    if (response.ok) {
+      const data = await response.json();
+      setOutput(data.url);
+    } else {
+      setOutput(null);
+    }
   };
 
   const handleDragLeave = () => {
@@ -86,7 +106,15 @@ function App() {
         <input type="radio" name="mediaType" value="image" checked={mediaType === 'image'} onChange={handleMediaTypeChange} /> Image
         <input type="radio" name="mediaType" value="video" checked={mediaType === 'video'} onChange={handleMediaTypeChange} /> Video
         <input type="radio" name="mediaType" value="rstp" checked={mediaType === 'rstp'} onChange={handleMediaTypeChange} /> RSTP
+        {mediaType === 'rstp' && (
+  <input type="text" placeholder="Enter RSTP URL" value={rstpUrl} onChange={(e) => setRstpUrl(e.target.value)} />
+  
+  
+)}
       </form>
+      {mediaType === 'rstp' && (
+  <button onClick={handleRstpSubmit}>Submit RSTP URL</button>
+)}
       <div
         id="drop-area"
         onClick={handleDropAreaClick}
@@ -137,6 +165,7 @@ function App() {
           )}
         </div>
       </div>
+      
     </div>
   );
 }
