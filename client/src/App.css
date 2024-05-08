@@ -61,6 +61,12 @@ body {
   justify-content: center;
 }
 
+/* set width max of container */
+.preview-box > img,video {
+  max-width: 100%;
+  max-height: 100%;
+}
+
 #prev {
   max-width: 100%;
   max-height: 100%;
@@ -103,4 +109,76 @@ body {
 .unhighlight {
   border-color: #aaa;
   background-color: #333;
+}
+
+/* Radio Button Custom */
+
+.media-type {
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+input[type=radio]:checked+label {
+  width: 12rem;
+  height: 12rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgb(34, 34, 34);
+  box-shadow: 0 0 3px 3px rgb(85, 85, 85);
+  color: #fff;
+}
+
+input[type=radio]+label {
+  width: 12rem;
+  height: 12rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  color: #222;
+}
+
+input[type=radio]+label:hover {
+  cursor: pointer;
+  background-color: #615d5d;
+
+}
+
+input[type=radio]:checked+label>img {
+  width: 80%;
+  height: auto;
+}
+
+.peer {
+  position: absolute;
+  left: -9999px;
+}
+
+/* RTSP */
+
+.container {
+  padding: 20px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.rtsp_imgstream {
+  width: 640px;
+  height: auto;
 }
