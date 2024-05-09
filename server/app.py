@@ -10,10 +10,16 @@ import ffmpeg
 import glob
 import time
 from threading import Lock
+import numpy as np
 
+streaming = False
 outputFrame = None
-cap_rtsp = None
+cap_stream = None
 lock = Lock()
+
+# Load a model for Streaming
+model = YOLO('model/weights/singleclass/best.pt', task="detect",
+             verbose=False)
 
 app = Flask(__name__)
 CORS(app)
@@ -125,16 +131,12 @@ def process_image():
 
         # Read the image file
         uploaded_file = request.files['file']
-        filename = secure_filename(uploaded_file.filename)
 
-        # Save the uploaded file to a temporary directory
-        uploaded_file_url = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        print('File path:', uploaded_file_url)
-
-        uploaded_file.save(uploaded_file_url)
+        # Convert the uploaded file to a numpy array
+        filestr = uploaded_file.read()
+        npimg = np.fromstring(filestr, np.uint8)
+        img = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
         print("Image Read...")
-
-        img = cv2.imread(uploaded_file_url)
 
         # Process the image
         results = model(img, verbose=False, conf=0.4)
@@ -159,16 +161,10 @@ def process_image():
         img_from_blob = cv2.dnn.imagesFromBlob(blob)[0]
         print("Image from Blob Created...")
 
-        # Save the processed image to an output directory
-        output_file_url = os.path.join(
-            app.config['OUTPUT_FOLDER'], 'image_from_blob.jpg')
-        cv2.imwrite(output_file_url, img_from_blob)
-        print("Image Saved...")
-
         # Encode the processed image in base64
-        with open(output_file_url, 'rb') as image_file:
-            encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-            print("Image Encoded...")
+        retval, buffer = cv2.imencode('.jpg', img_from_blob)
+        encoded_image = base64.b64encode(buffer).decode('utf-8')
+        print("Image Encoded...")
 
         print("All Steps Completed...")
 
@@ -218,11 +214,6 @@ def get_video():
     return rv
 
 
-# Load the model outside of the detect function
-model = YOLO('model/weights/singleclass/best.pt', task="detect",
-             verbose=False)  # pretrained YOLOv8n model
-
-
 def detect(frame):
     # Process the frame
     results = model(frame, verbose=False, conf=0.4)
@@ -246,38 +237,26 @@ def detect(frame):
 
 
 def generate():
-    # grab global references to the output frame and lock variables
-    global outputFrame, lock
+    global outputFrame, lock, streaming
 
-    # loop over frames from the output stream
     while True:
-        # wait until the lock is acquired
+        if not streaming:
+            break
+
         with lock:
-            # Check if the video capture is opened
-            if not cap_rtsp.isOpened():
-                # Load an error image
+            if cap_stream is None or not cap_stream.isOpened():
                 outputFrame = cv2.imread('error.jpg')
-
             else:
-                # read a frame from cap_rtsp
-                ret, frame = cap_rtsp.read()
-
-                # check if the frame was successfully read
+                ret, frame = cap_stream.read()
                 if not ret:
-                    # Load an error image
                     outputFrame = cv2.imread('error.jpg')
                 else:
-                    # apply detection on the frame
                     outputFrame = detect(frame)
 
-            # encode the frame in JPEG format
             (flag, encodedImage) = cv2.imencode(".jpg", outputFrame)
-
-            # ensure the frame was successfully encoded
             if not flag:
                 continue
 
-        # yield the output frame in the byte format
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
                bytearray(encodedImage) + b'\r\n')
 
@@ -285,104 +264,57 @@ def generate():
 @app.route('/process_rtsp', methods=['POST'])
 def process_rtsp():
     try:
-        global source, cap_rtsp
-        # get the rtsp link from the form data
+        global source, cap_stream, streaming, outputFrame
         source = request.form['rtspUrl'] + "/video"
-        # release the previous video capture
-        if cap_rtsp is not None:
-            cap_rtsp.release()
-        # create a new video capture with the new source
-        cap_rtsp = cv2.VideoCapture(source)
-        # check if the video capture was successfully opened
-        if not cap_rtsp.isOpened():
+        if cap_stream is not None:
+            cap_stream.release()
+            cap_stream = None
+        cap_stream = cv2.VideoCapture(source)
+        if not cap_stream.isOpened():
             raise ValueError('Failed to open video capture')
-        # return the url where the live stream can be accessed
-        return jsonify(url='http://localhost:5000/rtsp_stream')
+        streaming = True
+        outputFrame = None  # Reset the output frame
+        return jsonify(url='http://localhost:5000/live_stream')
     except Exception as e:
         return jsonify(error=str(e)), 400
-
-
-@app.route('/rtsp_stream')
-def rtsp_stream():
-    print("Starting RTSP stream...")
-    return Response(generate(),
-                    mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 @app.route('/process_webcam', methods=['GET'])
 def process_webcam():
-    print("Processing webcam...")
     try:
-        model = YOLO('model/weights/200epochs/best.pt',
-                     task="detect", verbose=False)
-        print("Model Loaded...")
-
-        # Open the webcam
-        cap = cv2.VideoCapture(0)
-
-        # Set a fixed frame rate
-        fps = 30
-        # Set the video's width and height
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        # Create a VideoWriter object to write processed frames to a new video
-        output_filename = os.path.join(
-            app.config['OUTPUT_FOLDER'], 'input.mp4')
-        out = cv2.VideoWriter(output_filename, cv2.VideoWriter_fourcc(
-            *'mp4v'), fps, (frame_width, frame_height))
-
-        start_time = time.time()  # Start the timer
-        max_duration = 25  # Maximum duration of the webcam stream in seconds
-
-        while cap.isOpened():
-            if time.time() - start_time > max_duration:
-                break
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Process the frame
-            results = model(frame, verbose=False, conf=0.65)
-
-            # Write each processed frame to the new video
-            for result in results:
-                processed_frame = result.plot()
-                high_confidence = True
-
-                for box in result.boxes:
-                    class_id = int(box.cls.item())
-                    class_name = result.names[class_id]
-
-                # If all detections have a confidence score greater than 0.6, write the frame to the video
-
-                out.write(processed_frame)
-                if not out.isOpened():
-                    print("Failed to write frame")
-
-        # Release the video capture and writer
-        cap.release()
-        out.release()
-        if not out.isOpened():
-            print("Failed to finalize video file")
-
-        stream = ffmpeg.input(os.path.join(
-            app.config['OUTPUT_FOLDER'], "input.mp4"))
-        stream = ffmpeg.output(stream, os.path.join(
-            app.config['OUTPUT_FOLDER'], "output.mp4"))
-        ffmpeg.run(stream, overwrite_output=True)
-
-        print("Video Processed...")
-
-        # Delete all files in the tmp and output folders except for output.mp4
-        for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER']]:
-            for filename in glob.glob(os.path.join(folder, '*')):
-                if filename != os.path.join(app.config['OUTPUT_FOLDER'], 'output.mp4'):
-                    os.remove(filename)
-
-        return jsonify(url="http://localhost:5000/get_video")
+        global cap_stream, streaming, outputFrame
+        if cap_stream is not None:
+            cap_stream.release()
+            cap_stream = None
+        cap_stream = cv2.VideoCapture(0)
+        if not cap_stream.isOpened():
+            raise ValueError('Failed to open video capture')
+        streaming = True
+        outputFrame = None  # Reset the output frame
+        return jsonify(url='http://localhost:5000/live_stream')
     except Exception as e:
         return jsonify(error=str(e)), 400
+
+
+@app.route('/stop_stream', methods=['GET'])
+def stop_stream():
+    try:
+        global cap_stream, streaming, outputFrame
+        if cap_stream is not None:
+            cap_stream.release()
+        cap_stream = None
+        streaming = False
+        outputFrame = None
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(error=str(e)), 400
+
+
+@app.route('/live_stream')
+def live_stream():
+    print("Starting RTSP stream...")
+    return Response(generate(),
+                    mimetype="multipart/x-mixed-replace; boundary=frame")
 
 
 if __name__ == '__main__':

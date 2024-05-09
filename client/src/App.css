@@ -35,16 +35,19 @@ body {
 }
 
 .preview-box {
+  display: flex;
   border: 2px dashed #aaa;
   border-radius: 5px;
   /* padding: 20px; */
   text-align: center;
+  justify-content: center;
+  align-items: center;
   color: #aaa;
   font-size: 16px;
   transition: border 0.3s ease-in-out;
-  height: 200px;
+  height: auto;
   /* Adjust as needed */
-  width: 200px;
+  width: auto;
   /* Adjust as needed */
   overflow: auto;
 }
@@ -114,7 +117,6 @@ body {
 /* Radio Button Custom */
 
 .media-type {
-  width: 100%;
   justify-content: center;
   align-items: center;
   display: flex;
@@ -123,43 +125,48 @@ body {
   gap: 0.5rem;
 }
 
+/* Styling for radio buttons */
 input[type=radio]:checked+label {
-  width: 12rem;
-  height: 12rem;
+  width: 8rem;
+  height: 8rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  background-color: rgb(34, 34, 34);
+  background-color: #333; /* Dark grey */
   box-shadow: 0 0 3px 3px rgb(85, 85, 85);
   color: #fff;
+  border-radius: 10px;
 }
 
+/* Styling for labels */
 input[type=radio]+label {
-  width: 12rem;
-  height: 12rem;
+  width: 8rem;
+  height: 8rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  background-color: #fff;
+  background-color: #444; /* Slightly lighter grey */
   padding: 2rem;
   border-radius: 10px;
-  color: #222;
+  color: #ddd; /* Light grey text */
 }
 
+/* Hover effect */
 input[type=radio]+label:hover {
   cursor: pointer;
-  background-color: #615d5d;
-
+  background-color: #555; /* Darker grey on hover */
 }
 
+/* Image styling */
 input[type=radio]:checked+label>img {
   width: 80%;
   height: auto;
 }
+
 
 .peer {
   position: absolute;
@@ -170,7 +177,6 @@ input[type=radio]:checked+label>img {
 
 .container {
   padding: 20px;
-  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -178,7 +184,64 @@ input[type=radio]:checked+label>img {
   gap: 1rem;
 }
 
-.rtsp_imgstream {
+.rtsp_imgstream, .webcam {
   width: 640px;
   height: auto;
 }
+
+/* Text input styling */
+.rtsp-input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid #777;
+  border-radius: 5px;
+  background-color: #333;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+/* Button styling */
+.rtsp-button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50; /* Green color */
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+  margin-left: 0.5rem; /* Add space between input and button */
+}
+
+.webcam-button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50; /* Green color */
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.rtsp-button:hover, .webcam-button:hover {
+  background-color: #45a049; /* Darker green on hover */
+  transform: translateY(-1px);
+}
+
+.rtsp-button:active, .webcam-button:active {
+  transform: translateY(0);
+}
+
+/* Container styling */
+.App {
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Heading styling */
+.App h1 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+}
+

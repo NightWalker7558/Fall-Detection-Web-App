@@ -2,33 +2,22 @@ import React, { useState } from 'react';
 import './App.css';
 import FileDropAndPreview from './Components/FileDropAndPreview';
 import StreamLinkAndPreview from './Components/StreamLinkAndPreview';
+import WebcamPreview from './Components/WebcamPreview';
 
 function App() {
-  const [output, setOutput] = useState(null);
   const [mediaType, setMediaType] = useState('image');
-  const [rstpUrl, setRstpUrl] = useState('');
-
-
-
-  const handleWebcamProcessing = async () => {
-    const response = await fetch('http://localhost:5000/process_webcam', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      setOutput(data.url);
-    } else {
-      setOutput(null);
-    }
-  };
 
   const handleMediaTypeChange = (e) => {
     console.log(e.target.value);
     setMediaType(e.target.value);
+
+    // stop the stream
+    fetch('http://localhost:5000/stop_stream')
+      .then(response => response.json())
+      .then(data => console.log(data))
+      .catch((error) => {
+        console.error('Error:', error);
+      });
   };
 
   return (
@@ -38,7 +27,7 @@ function App() {
 
         <div className="media-type">
           <input id='image/video' type="radio" className='peer' name="mediaType" value="image/video" checked={mediaType === 'image/video'} onChange={handleMediaTypeChange} />
-          <label htmlFor="image/video" height={'5rem'} >
+          <label className='' htmlFor="image/video" height={'5rem'} >
             <img className='icon' src="/media.png" alt='media' height={'100%'} />
             <span>Image / Video</span>
           </label>
@@ -61,7 +50,7 @@ function App() {
         <StreamLinkAndPreview />
       )}
       {mediaType === 'webcam' && (
-        <button onClick={handleWebcamProcessing}>Process Webcam</button>
+        <WebcamPreview />
       )}
       {mediaType === 'image/video' && (
         <FileDropAndPreview />

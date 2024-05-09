@@ -6,7 +6,8 @@ function FileDropAndPreview() {
   const [output, setOutput] = useState(null);
   const [drag, setDrag] = useState(false);
   const [dropText, setDropText] = useState('Drag and drop files here');
-  const [isProcessing, setIsProcessing] = useState(false); // [1
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState(null);
   const fileInputRef = useRef();
 
   const handleDragOver = (e) => {
@@ -47,6 +48,9 @@ function FileDropAndPreview() {
   };
 
   const handleFileUpload = async (file) => {
+    if (isProcessing) {
+      return;
+    }
     setIsProcessing(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -59,14 +63,18 @@ function FileDropAndPreview() {
       body: formData
     })
 
-    setIsProcessing(false);
+    const data = await response.json();
 
     if (response.ok) {
-      const data = await response.json();
+
       setOutput(data.url);
+      setError(null);
     } else {
       setOutput(null);
+      setError(data.error);
     }
+
+    setIsProcessing(false);
   };
 
   const handleDropAreaClick = () => {
@@ -122,7 +130,7 @@ function FileDropAndPreview() {
                   Your browser does not support the video tag.
                 </video>
               )
-            ) : (
+            ) : error ? error : (
               'No file to process.'
             )
           )}
