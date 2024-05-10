@@ -18,7 +18,7 @@ cap_stream = None
 lock = Lock()
 
 # Load a model for Streaming
-model = YOLO('model/weights/singleclass/best.pt', task="detect",
+model = YOLO('model/weights/200epochs/best.pt', task="detect",
              verbose=False)
 
 app = Flask(__name__)
@@ -216,7 +216,7 @@ def get_video():
 
 def detect(frame):
     # Process the frame
-    results = model(frame, verbose=False, conf=0.4)
+    results = model(frame, verbose=False, conf=0.8)
 
     # Check if any objects were detected
     if not results:
